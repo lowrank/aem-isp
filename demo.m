@@ -1,4 +1,5 @@
 % Parameters
+nodes = [0 1 1 0;0 0 1 1];
 femm_opt = struct('deg', 2, 'qdeg',4, 'min_area', 1e-4, 'edge', nodes);
 opt = struct('femm_opt', femm_opt, 'reg', 1e-4, 'beta', 0.02);
 
