@@ -30,7 +30,9 @@ classdef aem < handle
                 'm', [], ...   % mass matrix      (regularization use)
                 'n', [], ...   % number of nodes
                 'dof', [], ... % degree of freedom
-                'ndof', []);   % non degree of freedom
+                'ndof', [], ...   % non degree of freedom
+                'e', [], ... 
+                't', []);
             
             obj.parameter = struct (...
                 'sigma', []); ... % conductivity
@@ -42,11 +44,13 @@ classdef aem < handle
             % The cached matrices, for regularization use.
             obj.cache.s = obj.model.build('s', 1);
             obj.cache.m = obj.model.build('m', 1);
+            obj.cache.e = obj.model.build('e', 1, 'all');
             
             % Nodes
             obj.cache.n = size(obj.model.space.nodes, 2);
             obj.cache.ndof = unique(obj.model.space.edges);
             obj.cache.dof = setdiff(1:obj.cache.n, obj.cache.ndof);
+            
             
             % Parameter (user supplied)
             obj.parameter.sigma = conductivity(obj.model.space.nodes)';

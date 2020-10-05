@@ -1,32 +1,57 @@
-function demo()
-
 %% Parameters
 nodes = [0 1 1 0;0 0 1 1];
 femm_opt = struct('deg', 1, 'qdeg',4, 'min_area', 1e-4, 'edge', nodes);
 opt = struct('femm_opt', femm_opt, 'reg', 1e-4, 'beta', 0.02);
 
-OPTIMIZE =0;
-
 % Acousto-Eletric-Modulation object.
 aem_obj = aem(opt);
 
-%% Two data sets. [GRADIENT, MEASUREMENT]
-[v1, v1g, m1]=aem_obj.measurement(@neumann);
+noise = (2 * rand(aem_obj.cache.n, 2) - 1);
+
+
+%% MAIN PROGRAM
+OPTIMIZE = 1;
+MAXITER = 10;
+% Two data sets. [GRADIENT, MEASUREMENT]
+
 
 if OPTIMIZE
-    [v2, ~, ~] = selectNeumann(aem_obj, v1); % compute the suitable v2 instead of prescribed one.
-    v2 = v2 - mean(v2);              % project to the subspace.
-    v2g = aem_obj.gradient(v2);
+    [v1, ~, ~] = aem_obj.measurement(@neumann);
+    
+    [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, @neumann2);% compute the suitable v2 instead of prescribed one.
+    v2_new = v2_new - mean(v2_new);                                % project to the subspace.
+    [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, @neumann); % compute the suitable v1 instead of prescribed one.
+    v1_new = v1_new - mean(v1_new);                                % project to the subspace.
+ 
+    iter = 0;
+    while norm(v1_new - v1)/norm(v1) > 1e-2 && iter < MAXITER
+        
+        iter = iter + 1;
+        v1 = v1_new;
+        
+        [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, v2_new_bd); % compute the suitable v2 instead of prescribed one.
+        v2_new = v2_new - mean(v2_new);                                 % project to the subspace.
+        [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, v1_new_bd); % compute the suitable v1 instead of prescribed one.
+        v1_new = v1_new - mean(v1_new);                                 % project to the subspace.
+    
+    end
+    
+    
+    v1g = aem_obj.gradient(v1_new);
+    m1 = aem_obj.measurement_from_grad(v1g);  
+    v2g = aem_obj.gradient(v2_new);
     m2 = aem_obj.measurement_from_grad(v2g);
+    
 else
+    [v1, v1g, m1] = aem_obj.measurement(@neumann);
     [v2, v2g, m2] = aem_obj.measurement(@neumann2); % prescribed.
 end
 
 % Adding noise to each of measurements.
 noise_level = 0.05;
 
-m1 = m1 .* (1 + (2 * rand(size(m1)) - 1) * noise_level);
-m2 = m2 .* (1 + (2 * rand(size(m2)) - 1) * noise_level);
+m1 = m1 .* (1 + noise(:,1) * noise_level);
+m2 = m2 .* (1 + noise(:,2) * noise_level);
 
 % Determinant of linear system (Check to avoid blowing system error)
 
@@ -40,9 +65,9 @@ system_det = [ abs(   v2g(:, 1)  ./ theta )   ...
                abs(   v1g(:, 2)  ./ theta )   ...
                ];
 
-flag = 0;
+flag = 1;
 
-if all(abs(system_det) < 1e12)
+if all(abs(system_det) < 1e30)
     fprintf('Pass. The worst determinant is %6.2e.\n', max(max(system_det)));
     flag = 1;
 else
@@ -56,18 +81,20 @@ if flag
     % Check reconstruction.
     diff = J0 - aem_obj.current;
     L2error = sqrt(diff(:,1)' * aem_obj.cache.m * diff(:,1) + ...
-        diff(:,2)' * aem_obj.cache.m * diff(:,2));
+        diff(:,2)' * aem_obj.cache.m * diff(:,2))/ ...
+        sqrt(J0(:,1)' * aem_obj.cache.m *  J0(:,1) + ...
+        J0(:,2)' * aem_obj.cache.m * J0(:,2));
     
     fprintf('L2 error of reconstruction is %6.2e.\n', L2error);
     
     figure('Renderer', 'painters', 'Position', [10 10 900 650]);
     subplot(2, 2, 1);
-    aem_obj.plot(J0(:,1));
-    title('1st component of reconstructed J_0');
+    aem_obj.plot(J0(:,1)-aem_obj.current(:,1));
+    title('Error of 1st component from reconstructed J_0');
     
     subplot(2, 2, 2);
-    aem_obj.plot(J0(:,2));
-    title('2nd component of reconstructed J_0');
+    aem_obj.plot(J0(:,2)-aem_obj.current(:,2));
+    title('Error of 2nd component from reconstructed J_0');
     
     subplot(2, 2, 3);
     aem_obj.plot(aem_obj.current(:,1));
@@ -80,4 +107,3 @@ else
     fprintf('abort.\n');
 end
 
-end
