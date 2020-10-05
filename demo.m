@@ -65,7 +65,7 @@ system_det = [ abs(   v2g(:, 1)  ./ theta )   ...
                abs(   v1g(:, 2)  ./ theta )   ...
                ];
 
-flag = 1;
+flag = 0;
 
 if all(abs(system_det) < 1e30)
     fprintf('Pass. The worst determinant is %6.2e.\n', max(max(system_det)));
