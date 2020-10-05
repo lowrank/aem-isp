@@ -94,7 +94,7 @@ classdef aem < handle
       
         end
         
-        function [v_grad] = forward_solve(obj, neumann_func)
+        function [v, v_grad] = forward_solve(obj, neumann_func)
 
             q = obj.model.builder.qnodes1D(...
                 obj.model.space.nodes, ...
@@ -116,8 +116,16 @@ classdef aem < handle
         end
         
         
-        function [v_grad, m]= measurement(obj, neumann_func)
-            v_grad = obj.forward_solve(neumann_func);
+        function [v, v_grad, m]= measurement(obj, neumann_func)
+            [v, v_grad] = obj.forward_solve(neumann_func);
+            
+            m = (obj.beta * obj.parameter.sigma .* obj.grad(:,1) - obj.current(:,1)) .* ...
+                v_grad(:, 1) + ...
+                (obj.beta * obj.parameter.sigma .* obj.grad(:,2) - obj.current(:,2)) .* ...
+                v_grad(:, 2);
+        end
+        
+        function [m]= measurement_from_grad(obj, v_grad)
             
             m = (obj.beta * obj.parameter.sigma .* obj.grad(:,1) - obj.current(:,1)) .* ...
                 v_grad(:, 1) + ...
