@@ -1,12 +1,13 @@
 %% Parameters
 nodes = [0 1 1 0;0 0 1 1];
-femm_opt = struct('deg', 1, 'qdeg',4, 'min_area', 1e-4, 'edge', nodes);
+femm_opt = struct('deg', 1, 'qdeg',4, 'min_area', 2e-5, 'edge', nodes);
 opt = struct('femm_opt', femm_opt, 'reg', 1e-4, 'beta', 0.02);
 
 % Acousto-Eletric-Modulation object.
 aem_obj = aem(opt);
 
 noise = (2 * rand(aem_obj.cache.n, 2) - 1);
+
 
 
 %% MAIN PROGRAM
@@ -21,21 +22,37 @@ if OPTIMIZE
     [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, @neumann2);% compute the suitable v2 instead of prescribed one.
     v2_new = v2_new - mean(v2_new);                                % project to the subspace.
     [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, @neumann); % compute the suitable v1 instead of prescribed one.
-    v1_new = v1_new - mean(v1_new);                                % project to the subspace.
+    v1_new = v1_new - mean(v1_new);        
+    
+    v1_new = v1_new / norm(v1_new_bd);
+    v1_new_bd = v1_new_bd/norm(v1_new_bd);
+    
+    v2_new = v2_new / norm(v2_new_bd);
+    v2_new_bd = v2_new_bd/norm(v2_new_bd);
+    
+    % project to the subspace.
  
     iter = 0;
-    while norm(v1_new - v1)/norm(v1) > 1e-2 && iter < MAXITER
+    while norm(v1_new - v1)/norm(v1) > 1e-4 && iter < MAXITER
         
         iter = iter + 1;
         v1 = v1_new;
         
         [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, v2_new_bd); % compute the suitable v2 instead of prescribed one.
-        v2_new = v2_new - mean(v2_new);                                 % project to the subspace.
+        v2_new = v2_new - mean(v2_new); 
+
+        v1_new_bd = v1_new_bd/norm(v1_new_bd);                          % project to the subspace.
+        
         [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, v1_new_bd); % compute the suitable v1 instead of prescribed one.
         v1_new = v1_new - mean(v1_new);                                 % project to the subspace.
-    
+        
+        v1_new = v1_new / norm(v1_new_bd);
+        v1_new_bd = v1_new_bd/norm(v1_new_bd);
+
+        v2_new = v2_new / norm(v2_new_bd);
+        v2_new_bd = v2_new_bd/norm(v2_new_bd);
+           
     end
-    
     
     v1g = aem_obj.gradient(v1_new);
     m1 = aem_obj.measurement_from_grad(v1g);  
@@ -73,6 +90,10 @@ if all(abs(system_det) < 1e30)
 else
     fprintf('The system fails to be stably solved.\n');
 end
+
+
+% figure(2);
+% aem_obj.plot(aem_obj.parameter.sigma);
 
 % Reconstruct the current J0
 if flag

@@ -3,14 +3,14 @@ function [v2, x, fval] = selectNeumann(obj, v1, neumann_bc)
 n = obj.cache.n;
 edge_nodes = unique(obj.model.space.edges);
 if isempty(obj.cache.t)
-    obj.cache.t = (obj.cache.A - 1E-6*speye(n))\ obj.cache.e(:, edge_nodes);
+    obj.cache.t = (obj.cache.A - 1E-8*speye(n))\ obj.cache.e(:, edge_nodes);
 end
 
 m = size(obj.cache.t, 2);
 T = (obj.cache.t)' * (obj.cache.s * v1);
 T = T * T';
 
-Q = T + 1E-8 * obj.cache.s(edge_nodes, edge_nodes); % add a small regularization.
+Q = T + 1e-10* obj.cache.s(edge_nodes, edge_nodes); % add a small regularization.
 f = zeros(m,1);
 c = 0;
 
@@ -26,13 +26,13 @@ if strcmp(v.Release, '(R2014b)')
     options = optimoptions(@fmincon,'Display', 'iter', 'Algorithm','interior-point',...
         'GradObj','on','GradConstr','on',...
         'Hessian', 'bfgs',...
-        'TolFun', 1e-6, 'TolX', 1e-8);
+        'TolFun', 1e-8, 'TolX', 1e-8);
 else
     
     options = optimoptions(@fmincon,'Display', 'iter','Algorithm','interior-point',...
         'SpecifyObjectiveGradient',true,'SpecifyConstraintGradient',true,...
         'HessianApproximation', 'bfgs' ,...
-        'TolFun', 1e-6, 'TolX', 1e-8);
+        'TolFun', 1e-8, 'TolX', 1e-8);
 
 end
 

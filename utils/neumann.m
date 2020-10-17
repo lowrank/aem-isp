@@ -1,8 +1,10 @@
 function [ val ] = neumann( x )
 % A Neumann boundary function
 
-val = (1 .* (x(1,:) == 1)) + (-1 * (x(1,:) == 0)) + ...
-    (0 * (x(2,:) == 0)) + (0* (x(2,:) == 1));
+theta = 1* pi/4;
+% cos theta, sin theta
+
+val = (cos(theta)* (x(1,:) == 1)) + (-cos(theta) .* (x(1,:) == 0)) + ...
+    (-sin(theta) * (x(2,:) == 0)) + (sin(theta) * (x(2,:) == 1));
 
 end
-
