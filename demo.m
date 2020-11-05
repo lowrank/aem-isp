@@ -1,5 +1,5 @@
 %% Parameters
-nodes = [0 1 1 0;0 0 1 1];
+nodes = [0.1 0.9 0.9 0.1;0 0 1 1];
 femm_opt = struct('deg', 1, 'qdeg',4, 'min_area', 2e-5, 'edge', nodes);
 opt = struct('femm_opt', femm_opt, 'reg', 1e-4, 'beta', 0.02);
 
@@ -9,9 +9,8 @@ aem_obj = aem(opt);
 noise = (2 * rand(aem_obj.cache.n, 2) - 1);
 
 
-
 %% MAIN PROGRAM
-OPTIMIZE = 1;
+OPTIMIZE = 0;
 MAXITER = 10;
 % Two data sets. [GRADIENT, MEASUREMENT]
 
@@ -33,7 +32,7 @@ if OPTIMIZE
     % project to the subspace.
  
     iter = 0;
-    while norm(v1_new - v1)/norm(v1) > 1e-4 && iter < MAXITER
+    while norm(v1_new - v1)/norm(v1) > 1e-3 && iter < MAXITER
         
         iter = iter + 1;
         v1 = v1_new;

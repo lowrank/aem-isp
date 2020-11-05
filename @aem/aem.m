@@ -211,7 +211,8 @@ classdef aem < handle
             trisurf(obj.model.space.elems(1:3,:)', ...
                 obj.model.space.nodes(1,:), obj.model.space.nodes(2,:), ...
                 f);colormap jet;view(2);colorbar;shading interp;
-            
+            axis tight
+            pbaspect([0.9 1 1])
             
         end
         
@@ -224,7 +225,8 @@ classdef aem < handle
             c=[1e-5  1e-4  1e-3  1e-2 1e-1];
             caxis(log([c(1) c(length(c))]));
             colorbar('FontSize',11,'YTick',log(c),'YTickLabel',c);
-            
+            axis tight
+            pbaspect([0.9 1 1])
         end
     end
     
