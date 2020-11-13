@@ -1,3 +1,5 @@
+%% Partial Data
+
 %% Parameters
 nodes = [0.1 0.9 0.9 0.1;0 0 1 1];
 femm_opt = struct('deg', 1, 'qdeg',4, 'min_area', 2e-5, 'edge', nodes);
@@ -9,18 +11,27 @@ aem_obj = aem(opt);
 noise = (2 * rand(aem_obj.cache.n, 2) - 1);
 
 
+mask = @(x)(1-(x(2,:) == 0));
+
+mask_nodes = mask(aem_obj.model.space.nodes);
+edge_nodes = unique(aem_obj.model.space.edges);
+mask_nodes = mask_nodes(edge_nodes);
+
 %% MAIN PROGRAM
 OPTIMIZE = 1;
 MAXITER = 10;
 % Two data sets. [GRADIENT, MEASUREMENT]
 
+n1 = @(x)(neumann_partial(x, mask));
+n2 = @(x)(neumann2_partial(x, mask));
+
 
 if OPTIMIZE
-    [v1, ~, ~] = aem_obj.measurement(@neumann);
+    [v1, ~, ~] = aem_obj.measurement(n1);
     
-    [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, @neumann2);% compute the suitable v2 instead of prescribed one.
+    [v2_new, v2_new_bd, ~] = selectNeumann_partial(aem_obj, v1, n2, mask_nodes);% compute the suitable v2 instead of prescribed one.
     v2_new = v2_new - mean(v2_new);                                % project to the subspace.
-    [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, @neumann); % compute the suitable v1 instead of prescribed one.
+    [v1_new, v1_new_bd, ~] = selectNeumann_partial(aem_obj, v2_new, n1, mask_nodes); % compute the suitable v1 instead of prescribed one.
     v1_new = v1_new - mean(v1_new);        
     
     v1_new = v1_new / norm(v1_new_bd);
@@ -37,12 +48,12 @@ if OPTIMIZE
         iter = iter + 1;
         v1 = v1_new;
         
-        [v2_new, v2_new_bd, ~] = selectNeumann(aem_obj, v1, v2_new_bd); % compute the suitable v2 instead of prescribed one.
+        [v2_new, v2_new_bd, ~] = selectNeumann_partial(aem_obj, v1, v2_new_bd, mask_nodes); % compute the suitable v2 instead of prescribed one.
         v2_new = v2_new - mean(v2_new); 
 
         v1_new_bd = v1_new_bd/norm(v1_new_bd);                          % project to the subspace.
         
-        [v1_new, v1_new_bd, ~] = selectNeumann(aem_obj, v2_new, v1_new_bd); % compute the suitable v1 instead of prescribed one.
+        [v1_new, v1_new_bd, ~] = selectNeumann_partial(aem_obj, v2_new, v1_new_bd, mask_nodes); % compute the suitable v1 instead of prescribed one.
         v1_new = v1_new - mean(v1_new);                                 % project to the subspace.
         
         v1_new = v1_new / norm(v1_new_bd);
@@ -59,8 +70,8 @@ if OPTIMIZE
     m2 = aem_obj.measurement_from_grad(v2g);
     
 else
-    [v1, v1g, m1] = aem_obj.measurement(@neumann);
-    [v2, v2g, m2] = aem_obj.measurement(@neumann2); % prescribed.
+    [v1, v1g, m1] = aem_obj.measurement(n1);
+    [v2, v2g, m2] = aem_obj.measurement(n2); % prescribed.
 end
 
 % Adding noise to each of measurements.
